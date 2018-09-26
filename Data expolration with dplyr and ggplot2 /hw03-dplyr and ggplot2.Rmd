@@ -5,9 +5,51 @@ date: "26 September 2018"
 output: github_document
 ---
 
+```{r, message=FALSE}
+library(tidyverse)
+library(gapminder)
+library(knitr)
+```
+
 1. Get the maximum and minimum of GDP per capita for all continents.
 
+```{r}
+range(gapminder$gdpPercap)
+```
+Looks like the gdp increased in every continent with time, although the change in Afrika and the Americas in minimal.
+
+
 2. Look at the spread of GDP per capita within the continents.
+
+```{r}
+# group gapminder by continent
+gr_cont <- gapminder %>% group_by(continent)
+
+# calculate lowest, highest and mean value of gdp per continent
+mean_gdp_cont <- gr_cont %>% summarize(Mean=mean(gdpPercap))
+min_gdp_cont <- gr_cont %>% summarize(Min=min(gdpPercap))
+max_gdp_cont <- gr_cont %>% summarize(Max=max(gdpPercap))
+
+# merge results together into one data frame
+mm_gdp_cont <- merge(mean_gdp_cont, min_gdp_cont, by="continent")
+sum_gdp_cont <- merge(mm_gdp_cont, max_gdp_cont, by="continent")
+
+# rename continent variable
+sum_gdp_cont <- rename(sum_gdp_cont, Continent=continent)
+
+# show results in nice table
+kable(sum_gdp_cont)
+
+# make boxplot that shows gdp stats per country on a log scale
+gapminder %>%  
+  ggplot(aes(continent, gdpPercap)) +
+  scale_y_log10() +
+  geom_boxplot() +
+  labs(x="Continent", y="GDP per capita")
+```
+
+Problem: cannot pipe gapminder into base R funtions `summary()` or `range`. This makes it hard to use these function for previously sorted data. Feel like my solution is very long and I am wondering if there is a shorter way to do this.
+
 
 3. Compute a trimmed mean of life expectancy for different years. Or a weighted mean, weighting by population. Just try something other than the plain vanilla mean.
 
