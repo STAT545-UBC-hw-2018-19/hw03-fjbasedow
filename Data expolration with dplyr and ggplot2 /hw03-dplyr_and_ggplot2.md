@@ -131,13 +131,13 @@ kable(tm_lEy)
 
 ``` r
 # make matrix that includes both normal and trimmed mean for plotting
-mns_lE <- (merge(tm_lEy, nm_lEy, by="Year")) %>% 
-  column_to_rownames(var="Year") %>% 
-  as.matrix() %>% 
-  melt(value.name = "Mean") %>% 
-  rename(trimmed=Var2) %>% 
-  rename(Year=Var1) %>% 
-  mutate(trimmed = recode(trimmed, trMean="Yes", Mean="No"))
+mns_lE <- (merge(tm_lEy, nm_lEy, by="Year")) %>% # combine normal mean and trimmed mean data
+  column_to_rownames(var="Year") %>% # make years the rownames
+  as.matrix() %>% # change to matrix for keeping years properly after melting
+  melt(value.name = "Mean") %>% # combines Mean variables to one column with values and one column with respective labels
+  rename(Year=Var1) %>% # change name of year column
+  rename(trimmed=Var2) %>% # change column name of column that indicates if mean has bene trimmed
+  mutate(trimmed = recode(trimmed, trMean="Yes", Mean="No")) # change level names of trimmed variable
 head(mns_lE)
 ```
 
@@ -159,6 +159,16 @@ mns_lE %>%
 ![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-4-1.png)
 
 ### 4. How is life expectancy changing over time on different continents?
+
+``` r
+gapminder %>% 
+  ggplot(aes(year, lifeExp, colour=continent)) +
+  geom_jitter() +
+  geom_smooth(method=lm) +
+  labs(x="Year", y="Life Expectancy") 
+```
+
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-5-1.png)
 
 ### 5. Report the absolute and/or relative abundance of countries with low life expectancy over time by continent: Compute some measure of worldwide life expectancy – you decide – a mean or median or some other quantile or perhaps your current age. Then determine how many countries on each continent have a life expectancy less than this benchmark, for each year.
 
