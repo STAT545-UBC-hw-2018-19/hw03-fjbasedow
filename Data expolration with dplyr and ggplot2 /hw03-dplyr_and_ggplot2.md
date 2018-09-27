@@ -18,7 +18,19 @@ range(gapminder$gdpPercap)
 
     ## [1]    241.1659 113523.1329
 
-Looks like the gdp increased in every continent with time, although the change in Afrika and the Americas in minimal.
+``` r
+gapminder %>% 
+  ggplot(aes(year, lifeExp, colour=country, group=continent)) +
+  geom_jitter(show.legend=FALSE) +
+  geom_smooth(method=lm, show.legend=FALSE) +
+  facet_wrap(~continent) +
+  labs(x="Year", y="Life Expectancy") +
+  scale_color_manual(values = country_colors)
+```
+
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-2-1.png) Looks like the gdp increased in every continent with time, although the change in Afrika and the Americas in minimal.
+
+Found the cool country colours through Jenny Brian's gapminder repo
 
 ### 2. Look at the spread of GDP per capita within the continents.
 
@@ -53,7 +65,7 @@ kable(sum_gdp_cont)
 gapminder %>%  
   ggplot(aes(continent, gdpPercap)) +
   scale_y_log10() +
-  geom_boxplot() +
+  geom_boxplot(outlier.color = "red") +
   labs(x="Continent", y="GDP per capita")
 ```
 
@@ -171,6 +183,145 @@ gapminder %>%
 ![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-5-1.png)
 
 ### 5. Report the absolute and/or relative abundance of countries with low life expectancy over time by continent: Compute some measure of worldwide life expectancy – you decide – a mean or median or some other quantile or perhaps your current age. Then determine how many countries on each continent have a life expectancy less than this benchmark, for each year.
+
+``` r
+nm_lE
+```
+
+    ## [1] 59.47444
+
+``` r
+llE <- gr_yrs %>% filter(lifeExp < nm_lE) # this is not the mean, do i need the mean?
+
+# lifeExp of country is < nm_lE for year x
+# nlevels(continent) in year x for which lifeExp < nm_lE
+llE$year <- as.factor(llE$year)
+lvl_yrs <- levels(llE$year)
+
+# for (i in 1:nlevels(llE$year)){
+  # j <- llE %>% filter(year == lvl_yrs[i]) %>%
+  #   count("Afghanistan") 
+  # print(j)
+# }
+
+summary(llE$continent) # gives you how many countries have a life expectancy less than nm_lE in general, not per year
+```
+
+    ##   Africa Americas     Asia   Europe  Oceania 
+    ##      544       82      172       11        0
+
+``` r
+lvl_cont <- levels(llE$continent)
+
+for (i in 1:nlevels(llE$continent)){
+  
+  j <- llE %>% count(lvl_cont[i]) %>% 
+    rename(Continent="lvl_cont[i]")
+  
+  if (i < 2){
+    k <- j
+    }else{
+      k<- bind_rows(k,j)
+    }
+  
+    if (i < 5){
+      print(k)
+      }
+}
+```
+
+    ## # A tibble: 12 x 3
+    ## # Groups:   year [12]
+    ##    year  Continent     n
+    ##    <fct> <chr>     <int>
+    ##  1 1952  Africa      105
+    ##  2 1957  Africa       96
+    ##  3 1962  Africa       90
+    ##  4 1967  Africa       84
+    ##  5 1972  Africa       78
+    ##  6 1977  Africa       70
+    ##  7 1982  Africa       59
+    ##  8 1987  Africa       49
+    ##  9 1992  Africa       46
+    ## 10 1997  Africa       46
+    ## 11 2002  Africa       45
+    ## 12 2007  Africa       41
+    ## # A tibble: 24 x 3
+    ## # Groups:   year [12]
+    ##    year  Continent     n
+    ##    <fct> <chr>     <int>
+    ##  1 1952  Africa      105
+    ##  2 1957  Africa       96
+    ##  3 1962  Africa       90
+    ##  4 1967  Africa       84
+    ##  5 1972  Africa       78
+    ##  6 1977  Africa       70
+    ##  7 1982  Africa       59
+    ##  8 1987  Africa       49
+    ##  9 1992  Africa       46
+    ## 10 1997  Africa       46
+    ## # ... with 14 more rows
+    ## # A tibble: 36 x 3
+    ## # Groups:   year [12]
+    ##    year  Continent     n
+    ##    <fct> <chr>     <int>
+    ##  1 1952  Africa      105
+    ##  2 1957  Africa       96
+    ##  3 1962  Africa       90
+    ##  4 1967  Africa       84
+    ##  5 1972  Africa       78
+    ##  6 1977  Africa       70
+    ##  7 1982  Africa       59
+    ##  8 1987  Africa       49
+    ##  9 1992  Africa       46
+    ## 10 1997  Africa       46
+    ## # ... with 26 more rows
+    ## # A tibble: 48 x 3
+    ## # Groups:   year [12]
+    ##    year  Continent     n
+    ##    <fct> <chr>     <int>
+    ##  1 1952  Africa      105
+    ##  2 1957  Africa       96
+    ##  3 1962  Africa       90
+    ##  4 1967  Africa       84
+    ##  5 1972  Africa       78
+    ##  6 1977  Africa       70
+    ##  7 1982  Africa       59
+    ##  8 1987  Africa       49
+    ##  9 1992  Africa       46
+    ## 10 1997  Africa       46
+    ## # ... with 38 more rows
+
+``` r
+llE %>% count("Asia")
+```
+
+    ## # A tibble: 12 x 3
+    ## # Groups:   year [12]
+    ##    year  `"Asia"`     n
+    ##    <fct> <chr>    <int>
+    ##  1 1952  Asia       105
+    ##  2 1957  Asia        96
+    ##  3 1962  Asia        90
+    ##  4 1967  Asia        84
+    ##  5 1972  Asia        78
+    ##  6 1977  Asia        70
+    ##  7 1982  Asia        59
+    ##  8 1987  Asia        49
+    ##  9 1992  Asia        46
+    ## 10 1997  Asia        46
+    ## 11 2002  Asia        45
+    ## 12 2007  Asia        41
+
+``` r
+llE %>% 
+  ggplot(aes(year, lifeExp, group=country, colour=country)) +
+  geom_line(lwd=1, show.legend=FALSE) +
+  facet_wrap(~continent) +
+  scale_color_manual(values = country_colors)
+```
+
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-6-1.png)
 
 ### 6. Find countries with interesting stories. Open-ended and, therefore, hard. Promising but unsuccessful attempts are encouraged. This will generate interesting questions to follow up on in class.
 
