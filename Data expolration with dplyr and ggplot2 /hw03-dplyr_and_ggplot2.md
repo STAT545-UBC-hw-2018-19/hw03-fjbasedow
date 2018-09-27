@@ -198,12 +198,6 @@ llE <- gr_yrs %>% filter(lifeExp < nm_lE) # this is not the mean, do i need the 
 llE$year <- as.factor(llE$year)
 lvl_yrs <- levels(llE$year)
 
-# for (i in 1:nlevels(llE$year)){
-  # j <- llE %>% filter(year == lvl_yrs[i]) %>%
-  #   count("Afghanistan") 
-  # print(j)
-# }
-
 summary(llE$continent) # gives you how many countries have a life expectancy less than nm_lE in general, not per year
 ```
 
@@ -215,103 +209,37 @@ lvl_cont <- levels(llE$continent)
 
 for (i in 1:nlevels(llE$continent)){
   
-  j <- llE %>% count(lvl_cont[i]) %>% 
-    rename(Continent="lvl_cont[i]")
+  j <- llE %>% count(lvl_cont[i]) 
   
   if (i < 2){
     k <- j
     }else{
-      k<- bind_rows(k,j)
+      k<- bind_rows(k,j)  
     }
-  
-    if (i < 5){
-      print(k)
-      }
 }
+
+nc_llE <- k %>% 
+  rename(continent=`lvl_cont[i]`) %>% 
+  rename(n_countries=n)
+
+nc_llE  # can I add the mean lifeExp per year per continent?
 ```
 
-    ## # A tibble: 12 x 3
+    ## # A tibble: 60 x 3
     ## # Groups:   year [12]
-    ##    year  Continent     n
-    ##    <fct> <chr>     <int>
-    ##  1 1952  Africa      105
-    ##  2 1957  Africa       96
-    ##  3 1962  Africa       90
-    ##  4 1967  Africa       84
-    ##  5 1972  Africa       78
-    ##  6 1977  Africa       70
-    ##  7 1982  Africa       59
-    ##  8 1987  Africa       49
-    ##  9 1992  Africa       46
-    ## 10 1997  Africa       46
-    ## 11 2002  Africa       45
-    ## 12 2007  Africa       41
-    ## # A tibble: 24 x 3
-    ## # Groups:   year [12]
-    ##    year  Continent     n
-    ##    <fct> <chr>     <int>
-    ##  1 1952  Africa      105
-    ##  2 1957  Africa       96
-    ##  3 1962  Africa       90
-    ##  4 1967  Africa       84
-    ##  5 1972  Africa       78
-    ##  6 1977  Africa       70
-    ##  7 1982  Africa       59
-    ##  8 1987  Africa       49
-    ##  9 1992  Africa       46
-    ## 10 1997  Africa       46
-    ## # ... with 14 more rows
-    ## # A tibble: 36 x 3
-    ## # Groups:   year [12]
-    ##    year  Continent     n
-    ##    <fct> <chr>     <int>
-    ##  1 1952  Africa      105
-    ##  2 1957  Africa       96
-    ##  3 1962  Africa       90
-    ##  4 1967  Africa       84
-    ##  5 1972  Africa       78
-    ##  6 1977  Africa       70
-    ##  7 1982  Africa       59
-    ##  8 1987  Africa       49
-    ##  9 1992  Africa       46
-    ## 10 1997  Africa       46
-    ## # ... with 26 more rows
-    ## # A tibble: 48 x 3
-    ## # Groups:   year [12]
-    ##    year  Continent     n
-    ##    <fct> <chr>     <int>
-    ##  1 1952  Africa      105
-    ##  2 1957  Africa       96
-    ##  3 1962  Africa       90
-    ##  4 1967  Africa       84
-    ##  5 1972  Africa       78
-    ##  6 1977  Africa       70
-    ##  7 1982  Africa       59
-    ##  8 1987  Africa       49
-    ##  9 1992  Africa       46
-    ## 10 1997  Africa       46
-    ## # ... with 38 more rows
-
-``` r
-llE %>% count("Asia")
-```
-
-    ## # A tibble: 12 x 3
-    ## # Groups:   year [12]
-    ##    year  `"Asia"`     n
-    ##    <fct> <chr>    <int>
-    ##  1 1952  Asia       105
-    ##  2 1957  Asia        96
-    ##  3 1962  Asia        90
-    ##  4 1967  Asia        84
-    ##  5 1972  Asia        78
-    ##  6 1977  Asia        70
-    ##  7 1982  Asia        59
-    ##  8 1987  Asia        49
-    ##  9 1992  Asia        46
-    ## 10 1997  Asia        46
-    ## 11 2002  Asia        45
-    ## 12 2007  Asia        41
+    ##    year  continent n_countries
+    ##    <fct> <chr>           <int>
+    ##  1 1952  Africa            105
+    ##  2 1957  Africa             96
+    ##  3 1962  Africa             90
+    ##  4 1967  Africa             84
+    ##  5 1972  Africa             78
+    ##  6 1977  Africa             70
+    ##  7 1982  Africa             59
+    ##  8 1987  Africa             49
+    ##  9 1992  Africa             46
+    ## 10 1997  Africa             46
+    ## # ... with 50 more rows
 
 ``` r
 llE %>% 

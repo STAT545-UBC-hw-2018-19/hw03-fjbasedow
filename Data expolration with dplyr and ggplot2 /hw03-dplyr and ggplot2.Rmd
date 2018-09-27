@@ -125,33 +125,26 @@ llE <- gr_yrs %>% filter(lifeExp < nm_lE) # this is not the mean, do i need the 
 llE$year <- as.factor(llE$year)
 lvl_yrs <- levels(llE$year)
 
-# for (i in 1:nlevels(llE$year)){
-  # j <- llE %>% filter(year == lvl_yrs[i]) %>%
-  #   count("Afghanistan") 
-  # print(j)
-# }
-
 summary(llE$continent) # gives you how many countries have a life expectancy less than nm_lE in general, not per year
 
 lvl_cont <- levels(llE$continent)
 
 for (i in 1:nlevels(llE$continent)){
   
-  j <- llE %>% count(lvl_cont[i]) %>% 
-    rename(Continent="lvl_cont[i]")
+  j <- llE %>% count(lvl_cont[i]) 
   
   if (i < 2){
     k <- j
     }else{
-      k<- bind_rows(k,j)
+      k<- bind_rows(k,j)  
     }
-  
-    if (i < 5){
-      print(k)
-      }
 }
 
-llE %>% count("Asia")
+nc_llE <- k %>% 
+  rename(continent=`lvl_cont[i]`) %>% 
+  rename(n_countries=n)
+
+nc_llE  # can I add the mean lifeExp per year per continent?
 
 llE %>% 
   ggplot(aes(year, lifeExp, group=country, colour=country)) +
