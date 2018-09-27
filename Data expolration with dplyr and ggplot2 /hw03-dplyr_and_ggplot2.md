@@ -7,6 +7,7 @@ Frederike Basedow
 library(tidyverse)
 library(gapminder)
 library(knitr)
+library(reshape2)
 ```
 
 ### 1. Get the maximum and minimum of GDP per capita for all continents.
@@ -32,10 +33,8 @@ max_gdp_cont <- gr_cont %>% summarize(Max=max(gdpPercap))
 
 # merge results together into one data frame
 mm_gdp_cont <- merge(mean_gdp_cont, min_gdp_cont, by="continent")
-sum_gdp_cont <- merge(mm_gdp_cont, max_gdp_cont, by="continent")
-
-# rename continent variable
-sum_gdp_cont <- rename(sum_gdp_cont, Continent=continent)
+sum_gdp_cont <- merge(mm_gdp_cont, max_gdp_cont, by="continent") %>% 
+  rename(Continent=continent)
 
 # show results in nice table
 kable(sum_gdp_cont)
@@ -81,10 +80,14 @@ wm_lE_pop
     ## [1] 62.48168
 
 ``` r
-# calculate trimmed mean for life Exp, trimmed by 10%, for each year
-gr_yrs <- gapminder %>% group_by(year)
-nm_lEy <- gr_yrs %>% summarize(Mean=mean(lifeExp))
-nm_lEy <- rename(nm_lEy, Year=year)
+# group gapminder data by year
+gr_yrs <- gapminder %>% 
+  group_by(year)
+
+# calculate normal mean of life Exp per year
+nm_lEy <- gr_yrs %>% 
+  summarize(Mean=mean(lifeExp)) %>% 
+  rename(Year=year)
 kable(nm_lEy)
 ```
 
@@ -104,50 +107,53 @@ kable(nm_lEy)
 |  2007|  67.00742|
 
 ``` r
-tm_lE <- gr_yrs %>% summarize(trMean=mean(lifeExp, trim=0.1))
-tm_lE <-rename(tm_lE, Year=year)
-kable(tm_lE)
+# calculate trimmed mean, by 30%, for each year
+tm_lEy <- gr_yrs %>% 
+  summarize(trMean=mean(lifeExp, trim=0.30)) %>% 
+  rename(Year=year)
+kable(tm_lEy)
 ```
 
 |  Year|    trMean|
 |-----:|---------:|
-|  1952|  48.57668|
-|  1957|  51.26888|
-|  1962|  53.58075|
-|  1967|  55.86538|
-|  1972|  58.01444|
-|  1977|  60.10206|
-|  1982|  62.11694|
-|  1987|  63.92106|
-|  1992|  65.18519|
-|  1997|  66.01736|
-|  2002|  66.71641|
-|  2007|  68.11489|
+|  1952|  46.83114|
+|  1957|  49.85769|
+|  1962|  52.40092|
+|  1967|  55.15267|
+|  1972|  57.87755|
+|  1977|  60.41925|
+|  1982|  62.81936|
+|  1987|  65.00983|
+|  1992|  66.50200|
+|  1997|  67.69257|
+|  2002|  68.90531|
+|  2007|  70.27053|
 
 ``` r
-mn_lE_comp <- merge(tm_lE, nm_lEy, by="Year")
-mn_lE_comp
+# make matrix that includes both normal and trimmed mean for plotting
+mns_lE <- (merge(tm_lEy, nm_lEy, by="Year")) %>% 
+  column_to_rownames(var="Year") %>% 
+  as.matrix() %>% 
+  melt(value.name = "Mean") %>% 
+  rename(trimmed=Var2) %>% 
+  rename(Year=Var1) %>% 
+  mutate(trimmed = recode(trimmed, trMean="Yes", Mean="No"))
+head(mns_lE)
 ```
 
-    ##    Year   trMean     Mean
-    ## 1  1952 48.57668 49.05762
-    ## 2  1957 51.26888 51.50740
-    ## 3  1962 53.58075 53.60925
-    ## 4  1967 55.86538 55.67829
-    ## 5  1972 58.01444 57.64739
-    ## 6  1977 60.10206 59.57016
-    ## 7  1982 62.11694 61.53320
-    ## 8  1987 63.92106 63.21261
-    ## 9  1992 65.18519 64.16034
-    ## 10 1997 66.01736 65.01468
-    ## 11 2002 66.71641 65.69492
-    ## 12 2007 68.11489 67.00742
+    ##   Year trimmed     Mean
+    ## 1 1952     Yes 46.83114
+    ## 2 1957     Yes 49.85769
+    ## 3 1962     Yes 52.40092
+    ## 4 1967     Yes 55.15267
+    ## 5 1972     Yes 57.87755
+    ## 6 1977     Yes 60.41925
 
 ``` r
-tm_lE %>% 
-  ggplot(aes(Year, trMean)) +
+mns_lE %>% 
+  ggplot(aes(Year, Mean, colour=trimmed)) +
   geom_point() +
-  labs(x="Year", y="trimmed Mean")
+  labs(x="Year", y="Mean")
 ```
 
 ![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-4-1.png)
