@@ -360,4 +360,43 @@ These plots shows the life expectancy over the years in different continents. Ea
 
 ### 6. Find countries with interesting stories. Open-ended and, therefore, hard. Promising but unsuccessful attempts are encouraged. This will generate interesting questions to follow up on in class.
 
+It looks like there is a country in Afrika that had a big drop in life expectancy between 1987 and 1992. Let's figure out which country that is.
+
+``` r
+gapminder %>% 
+  group_by(country) %>% 
+  mutate(drop = (lifeExp - lifeExp[year == 1987])) %>% 
+  filter(continent == "Africa", year == 1992) %>% 
+  summarize(Max = max(drop)) %>% 
+  arrange(Max) 
+```
+
+    ## # A tibble: 52 x 2
+    ##    country             Max
+    ##    <fct>             <dbl>
+    ##  1 Rwanda           -20.4 
+    ##  2 Liberia           -5.23
+    ##  3 Somalia           -4.84
+    ##  4 Zambia            -4.72
+    ##  5 Burundi           -3.48
+    ##  6 Uganda            -2.68
+    ##  7 Cote d'Ivoire     -2.61
+    ##  8 Zimbabwe          -1.97
+    ##  9 Congo, Dem. Rep.  -1.86
+    ## 10 Sierra Leone      -1.67
+    ## # ... with 42 more rows
+
+``` r
+Rwanda <- gapminder %>% filter(country == "Rwanda")
+
+gapminder %>% 
+  filter(continent== "Africa") %>% 
+  ggplot(aes(year, lifeExp, group=country)) +
+  geom_line(lwd=1, colour = "navy") +
+  geom_line(data = Rwanda, aes(year, lifeExp), lwd=1, colour = "hotpink") +
+  labs(x="Year", y="Life Expectancy")
+```
+
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-8-1.png)
+
 Or, make up your own! Between the dplyr coverage in class and the list above, I think you get the idea.
