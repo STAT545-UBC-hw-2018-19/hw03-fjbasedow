@@ -16,14 +16,39 @@ library(reshape2)
 
 ```{r}
 range(gapminder$gdpPercap)
+
+# calculate lowest and highest gdp per capita per continent
+minmax_gdp_cont <- gapminder %>% 
+  group_by(continent) %>% 
+  summarize(Min = min(gdpPercap), Max = max(gdpPercap))
+
+kable(minmax_gdp_cont)
+
+# Plot of the highest and lowest value in GDP per Capita per continent
+minmax_gdp_cont %>% 
+  melt(variable.name="Statistic") %>% 
+  ggplot(aes(continent,value, colour=Statistic)) + 
+  geom_point() +
+  labs(x="Continent", y="GDP per capita")
+
+# make boxplot that shows gdp stats per continent on a log scale
+gapminder %>%  
+  ggplot(aes(continent, gdpPercap)) +
+  scale_y_log10() +
+  geom_boxplot(outlier.color = "red") +
+  labs(x="Continent", y="GDP per capita")
+
 gapminder %>% 
-  ggplot(aes(year, lifeExp, colour=country, group=continent)) +
+  ggplot(aes(year, gdpPercap, colour=country, group=continent)) +
+  scale_y_log10()+
   geom_jitter(show.legend=FALSE) +
   geom_smooth(method=lm, show.legend=FALSE) +
   facet_wrap(~continent) +
-  labs(x="Year", y="Life Expectancy") +
+  labs(x="Year", y="GDP per capita") +
   scale_color_manual(values = country_colors)
+
 ```
+
 Looks like the gdp increased in every continent with time, although the change in Afrika and the Americas in minimal.
 
 Found the cool country colours through Jenny Brian's gapminder repo
@@ -32,28 +57,7 @@ Found the cool country colours through Jenny Brian's gapminder repo
 ### 2. Look at the spread of GDP per capita within the continents.
 
 ```{r}
-# group gapminder by continent
-gr_cont <- gapminder %>% group_by(continent)
 
-# calculate lowest, highest and mean value of gdp per continent
-mean_gdp_cont <- gr_cont %>% summarize(Mean=mean(gdpPercap))
-min_gdp_cont <- gr_cont %>% summarize(Min=min(gdpPercap))
-max_gdp_cont <- gr_cont %>% summarize(Max=max(gdpPercap))
-
-# merge results together into one data frame
-mm_gdp_cont <- merge(mean_gdp_cont, min_gdp_cont, by="continent")
-sum_gdp_cont <- merge(mm_gdp_cont, max_gdp_cont, by="continent") %>% 
-  rename(Continent=continent)
-
-# show results in nice table
-kable(sum_gdp_cont)
-
-# make boxplot that shows gdp stats per country on a log scale
-gapminder %>%  
-  ggplot(aes(continent, gdpPercap)) +
-  scale_y_log10() +
-  geom_boxplot(outlier.color = "red") +
-  labs(x="Continent", y="GDP per capita")
 ```
 
 Problem: cannot pipe gapminder into base R funtions `summary()` or `range`. This makes it hard to use these function for previously sorted data. Feel like my solution is very long and I am wondering if there is a shorter way to do this. Found summarize function in "data wrangling with tidyverse and dplyr" cheatsheet
@@ -100,6 +104,8 @@ mns_lE %>%
   ggplot(aes(Year, Mean, colour=trimmed)) +
   geom_point() +
   labs(x="Year", y="Mean")
+
+
 ```
 
 
@@ -111,27 +117,58 @@ gapminder %>%
   geom_jitter() +
   geom_smooth(method=lm) +
   labs(x="Year", y="Life Expectancy") 
+
+# show change of life expectancy over time for countries in each continent
+gapminder %>% 
+  ggplot(aes(year, lifeExp, colour=country, group=continent)) +
+  geom_jitter(show.legend=FALSE) +
+  geom_smooth(method=lm, show.legend=FALSE) +
+  facet_wrap(~continent) +
+  labs(x="Year", y="Life Expectancy") +
+  scale_color_manual(values = country_colors)
 ```
 
 ### 5. Report the absolute and/or relative abundance of countries with low life expectancy over time by continent: Compute some measure of worldwide life expectancy – you decide – a mean or median or some other quantile or perhaps your current age. Then determine how many countries on each continent have a life expectancy less than this benchmark, for each year.
 
 ```{r}
-nm_lE
+# get mean life expectancy per year of countries with mean lifeExp lower than normal mean 
+low_lE <- gapminder %>% 
+  group_by(year, country, continent) %>% 
+  summarize(mean=mean(lifeExp)) %>% 
+  filter(mean < nm_lE) %>% 
+  group_by(continent, year) %>% 
+  summarize(num=n()) %>% 
+  select(year, continent, num)
 
+# other way
 llE <- gr_yrs %>% filter(lifeExp < nm_lE) # this is not the mean, do i need the mean?
+n_CbyY <-llE %>% 
+  group_by(year, continent) %>% 
+  count() %>% 
+  arrange(continent)
 
+low_lE == n_CbyY
+
+# how many countries have a life expectancy less than nm_lE in general, not per year
+summary(llE$continent) 
+
+# same output, different way
+llE %>% 
+  group_by(continent) %>% 
+  count()
+```
+
+```{r}
 # lifeExp of country is < nm_lE for year x
 # nlevels(continent) in year x for which lifeExp < nm_lE
-llE$year <- as.factor(llE$year)
-lvl_yrs <- levels(llE$year)
 
-summary(llE$continent) # gives you how many countries have a life expectancy less than nm_lE in general, not per year
-
+# try loop option, something's wrong
 lvl_cont <- levels(llE$continent)
 
 for (i in 1:nlevels(llE$continent)){
   
-  j <- llE %>% count(lvl_cont[i]) 
+  j <- llE %>%  
+    count(lvl_cont[i]) 
   
   if (i < 2){
     k <- j
@@ -143,16 +180,30 @@ for (i in 1:nlevels(llE$continent)){
 nc_llE <- k %>% 
   rename(continent=`lvl_cont[i]`) %>% 
   rename(n_countries=n)
-
+# see lecture 8 to make this easier
 nc_llE  # can I add the mean lifeExp per year per continent?
+
+
+
 
 llE %>% 
   ggplot(aes(year, lifeExp, group=country, colour=country)) +
   geom_line(lwd=1, show.legend=FALSE) +
+  geom_hline(yintercept = nm_lE) +
   facet_wrap(~continent) +
-  scale_color_manual(values = country_colors)
+  scale_color_manual(values = country_colors) +
+  labs(x="Year", y="Life Expectancy")
+
+gapminder %>% 
+  ggplot(aes(year, lifeExp, group=country, colour=country)) +
+  geom_line(lwd=1, show.legend=FALSE) +
+  geom_hline(yintercept = nm_lE) +
+  facet_wrap(~continent) +
+  scale_color_manual(values = country_colors) +
+  labs(x="Year", y="Life Expectancy")
 ```
 
+These plots shows the life expectancy over the years in different continents. Each line represents a country in the continent. The black line is the average life expectancy of all countries in all years.
 
 ### 6. Find countries with interesting stories. Open-ended and, therefore, hard. Promising but unsuccessful attempts are encouraged. This will generate interesting questions to follow up on in class.
 
