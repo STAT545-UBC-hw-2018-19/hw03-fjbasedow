@@ -1,7 +1,7 @@
 ---
 title: "STAT545 Homework 3"
 author: "Frederike Basedow"
-date: "26 September 2018"
+date: "2 October 2018"
 output: github_document
 ---
 
@@ -14,7 +14,7 @@ library(reshape2)
 
 ### 1. Get the maximum and minimum of GDP per capita for all continents.
 
-```{r}
+```{r, message = FALSE}
 range(gapminder$gdpPercap)
 
 # calculate lowest and highest gdp per capita per continent
@@ -26,53 +26,65 @@ kable(minmax_gdp_cont)
 
 # Plot of the highest and lowest value in GDP per Capita per continent
 minmax_gdp_cont %>% 
-  melt(variable.name="Statistic") %>% 
-  ggplot(aes(continent,value, colour=Statistic)) + 
-  geom_point() +
+  melt(variable.name="Statistic") %>% # make data tidy for plotting
+  ggplot(aes(continent, value, colour=Statistic)) + 
+  geom_point(size=5) +
   labs(x="Continent", y="GDP per capita")
-
-
 ```
 
-Looks like the gdp increased in every continent with time, although the change in Africa and the Americas in minimal.
-
-Found the cool country colours through Jenny Brian's gapminder repo
+Asia has the highest value of GDP per capita of all continents throughout all years.
 
 
 ### 2. Look at the spread of GDP per capita within the continents.
 
 ```{r}
-# calculate spread statistics, i.e. standard deviation, interquartile range and median absolute deviation
+# number of countries per continent
+n_country <- gapminder %>% group_by(continent) %>% count()
+kable(n_country)
+
+# calculate statistics for gdpPercap and make a nice table out of it
 spread_gdp_cont <- gapminder %>% 
   group_by(continent) %>% 
-  summarize(SD = sd(gdpPercap), 
-            IQR = IQR(gdpPercap), 
-            MAD= mad(gdpPercap), 
-            Mean = mean(gdpPercap))
+  summarize(Mean = mean(gdpPercap),
+            Median = median(gdpPercap),
+            SD = sd(gdpPercap), # standard deviation
+            IQR = IQR(gdpPercap), # interquartile range
+            MAD = mad(gdpPercap)) %>% # median absolute deviation
+  merge(., n_country, by="continent") %>% # add number of countries as column
+  mutate(SEM=SD/sqrt(n)) %>%   # calculate the standard error of the mean
+  rename(Continent = continent)
 
 kable(spread_gdp_cont)
 ```
 
-Asia has the highest standard deviation, Europe the biggest interquartile range and median absolute deviation.
 
-Here is a boxplot of the GDP per capita per continent to visualize the spread. Boxplots visualise the median, the lower and upper hinges correspond to the first and third quartiles and the length of the whiskers is 1.5x the IQR (from R documentation). Data beyond the whiskers are outliers and plotted as individual points. 
+Next, I will make a boxplot of the GDP per capita per continent to visualize the spread. Boxplots visualise the median as a line in the middle of the box, the lower and upper hinges correspond to the first and third quartiles and the length of the whiskers is 1.5x the IQR (from R documentation). Data beyond the whiskers are outliers and plotted as individual points. 
+
 ```{r}
 # make boxplot that shows gdp per continent (log scale)
 gapminder %>%  
   ggplot(aes(continent, gdpPercap)) +
   scale_y_log10() +
-  geom_boxplot(outlier.color = "red") +
+  geom_boxplot(outlier.color = "red") + # found out about outlier colours in Jenny Bryans repo
   labs(x="Continent", y="GDP per capita")
 ```
 
-We can also make a bar graph with errorbars that represent the SD.
+Oceania has the highest median in GDP per capita, Africa has the lowest.
 
+
+We can also make a bar graph with errorbars that represent the SEM:
 ```{r}
-gapminder %>% 
-  ggplot() +
-  scale_y_log10() +
-  geom_bar(aes(continent, gdpPercap), stat= "summary", fun.y="mean")
+spread_gdp_cont %>% 
+  ggplot(aes(Continent, Mean))  +
+  geom_bar(stat= "identity") +
+  geom_errorbar(aes(ymin=Mean-SEM, ymax=Mean+SEM), width=.1) +
+  labs(x="Continent")
 ```
+
+Oceania has the highest mean GDP per capita, Africa has the lowest.
+
+
+To get a better overview of how the GDP data looks like for every continent, I will make a jitter graph that shows the the GDP per capita of each country over time, separated by continent.
 
 ```{r}
 # make plot of how change of GDP per capita over the years in each continent
@@ -83,11 +95,11 @@ gapminder %>%
   geom_smooth(method=lm, show.legend=FALSE) +
   facet_wrap(~continent) +
   labs(x="Year", y="GDP per capita") +
-  scale_color_manual(values = country_colors)
+  scale_color_manual(values = country_colors) # Found the cool country colours through Jenny Bryan's gapminder repo.
 
 ```
 
-Problem: cannot pipe gapminder into base R funtions `summary()` or `range`. This makes it hard to use these function for previously sorted data. Feel like my solution is very long and I am wondering if there is a shorter way to do this. Found summarize function in "data wrangling with tidyverse and dplyr" cheatsheet
+Looks like the GDP increased in every continent with time, although the change in Africa and the Americas seems minimal.
 
 
 ### 3. Compute a trimmed mean of life expectancy for different years. Or a weighted mean, weighting by population. Just try something other than the plain vanilla mean.
@@ -101,50 +113,38 @@ nm_lE
 wm_lE_pop <- weighted.mean(gapminder$lifeExp, gapminder$pop)
 wm_lE_pop
 
-# group gapminder data by year
+# group gapminder by years for future use
 gr_yrs <- gapminder %>% 
-  group_by(year)
+  group_by(year) 
 
-# calculate normal mean of life Exp per year
-nm_lEy <- gr_yrs %>% 
-  summarize(Mean=mean(lifeExp)) %>% 
+# calculate normal and trimmed (30%) mean of lifeExp per year
+means_lE <- gr_yrs %>% 
+  summarize(Mean=mean(lifeExp), trMean=mean(lifeExp, trim=0.30)) %>% 
   rename(Year=year)
-kable(nm_lEy)
 
-# calculate trimmed mean, by 30%, for each year
-tm_lEy <- gr_yrs %>% 
-  summarize(trMean=mean(lifeExp, trim=0.30)) %>% 
-  rename(Year=year)
-kable(tm_lEy)
+kable(head(means_lE))
 
-# make matrix that includes both normal and trimmed mean for plotting
-mns_lE <- (merge(tm_lEy, nm_lEy, by="Year")) %>% # combine normal mean and trimmed mean data
-  column_to_rownames(var="Year") %>% # make years the rownames
-  as.matrix() %>% # change to matrix for keeping years properly after melting
-  melt(value.name = "Mean") %>% # combines Mean variables to one column with values and one column with respective labels
-  rename(Year=Var1) %>% # change name of year column
-  rename(trimmed=Var2) %>% # change column name of column that indicates if mean has bene trimmed
-  mutate(trimmed = recode(trimmed, trMean="Yes", Mean="No")) # change level names of trimmed variable
-head(mns_lE)
+# make into tidy data for plotting
 
-mns_lE %>% 
+tidy_means_lE <- means_lE %>% 
+  gather(key="trimmed", value="Mean", Mean, trMean)  %>% 
+  mutate(trimmed = recode(trimmed, trMean="Yes", Mean="No"))
+
+kable(head(tidy_means_lE))
+
+# plot both normal and trimmed means
+tidy_means_lE %>% 
   ggplot(aes(Year, Mean, colour=trimmed)) +
-  geom_point() +
+  geom_point(size=3) +
   labs(x="Year", y="Mean")
-
-
 ```
+
+The trimmed mean (Yes) is lower in in early years and higher in later years than the normal mean (No).
 
 
 ### 4. How is life expectancy changing over time on different continents?
 
 ```{r}
-gapminder %>% 
-  ggplot(aes(year, lifeExp, colour=continent)) +
-  geom_jitter() +
-  geom_smooth(method=lm) +
-  labs(x="Year", y="Life Expectancy") 
-
 # show change of life expectancy over time for countries in each continent
 gapminder %>% 
   ggplot(aes(year, lifeExp, colour=country, group=continent)) +
@@ -155,64 +155,72 @@ gapminder %>%
   scale_color_manual(values = country_colors)
 ```
 
+Life expectancy is increasing over time in all continents.
+
+
 ### 5. Report the absolute and/or relative abundance of countries with low life expectancy over time by continent: Compute some measure of worldwide life expectancy – you decide – a mean or median or some other quantile or perhaps your current age. Then determine how many countries on each continent have a life expectancy less than this benchmark, for each year.
+
+I will use the mean of life expectancy over all countries and all years as a measure of worldwide life expectancy.
 
 ```{r}
 # get mean life expectancy per year of countries with mean lifeExp lower than normal mean 
 low_lE <- gapminder %>% 
   group_by(year, country, continent) %>% 
-  summarize(mean=mean(lifeExp)) %>% 
+  summarize(mean = mean(lifeExp)) %>% 
   filter(mean < nm_lE) %>% 
   group_by(continent, year) %>% 
-  summarize(num=n()) %>% 
-  select(year, continent, num)
+  summarize(n = n()) %>% 
+  select(year, continent, n)
 
-# other way
-llE <- gr_yrs %>% filter(lifeExp < nm_lE) # this is not the mean, do i need the mean?
-n_CbyY <-llE %>% 
+kable(head(low_lE))
+
+# other way to do this
+llE <- gr_yrs %>% filter(lifeExp < nm_lE) # gr_yrs is previously grouped gapminder by year
+
+low_lE_2 <- llE %>% 
   group_by(year, continent) %>% 
   count() %>% 
   arrange(continent)
 
-low_lE == n_CbyY
+kable(head(low_lE_2))
 
+# plot number of countries with low life expectancies over the years 
+low_lE %>% 
+  ggplot(aes(year, n, group=continent)) + 
+  geom_bar(stat="identity") +
+  facet_wrap(~continent) +
+  labs(y="Number of low life expectancy countries", x="Year")
+```
+
+This graph shows the number of countries with low life expectancy per continent over the years. Afrika has the highest number of low life expectancy countries and only a relatively small decline in numbers over the years.
+
+
+Let's look at the total number of low life expectancy countries per continent (not differentiated by year)
+```{r}
 # how many countries have a life expectancy less than nm_lE in general, not per year
 summary(llE$continent) 
 
-# same output, different way
-llE %>% 
+# same result, different way
+n_llE_country <- llE %>% 
   group_by(continent) %>% 
   count()
+
+kable(n_llE_country)
+
+# compare number of low life expectancy countries with total number of countries per continent and calculate percentages
+comp_countries <- 
+  merge(n_llE_country, n_country, by="continent") %>% # Oceania get's excluded here, probably because it has zero observations. Not sure how to avoid that.
+  mutate(perc_llE = paste0(round(n.x/n.y*100, 2), "%")) %>%  
+  rename("No. all countries" = n.y, "No. low life Exp countries" = n.x, "% low life Exp countries" = perc_llE) 
+
+kable(comp_countries)
 ```
 
+Afrika has the highest percentage of low life expectancy countries. 
+
+
+Next, I will make two graphs that show the life expectancy of each country per continent over the years. One will show only the low life expectancy countries, the other one will show all countries. I will add a line to show the worldwide life expectancy (mean life expectancy of all continents).
 ```{r}
-# lifeExp of country is < nm_lE for year x
-# nlevels(continent) in year x for which lifeExp < nm_lE
-
-# try loop option, something's wrong
-lvl_cont <- levels(llE$continent)
-
-for (i in 1:nlevels(llE$continent)){
-  
-  j <- llE %>%  
-    count(lvl_cont[i]) 
-  
-  if (i < 2){
-    k <- j
-    }else{
-      k<- bind_rows(k,j)  
-    }
-}
-
-nc_llE <- k %>% 
-  rename(continent=`lvl_cont[i]`) %>% 
-  rename(n_countries=n)
-# see lecture 8 to make this easier
-nc_llE  # can I add the mean lifeExp per year per continent?
-
-
-
-
 llE %>% 
   ggplot(aes(year, lifeExp, group=country, colour=country)) +
   geom_line(lwd=1, show.legend=FALSE) +
@@ -220,7 +228,13 @@ llE %>%
   facet_wrap(~continent) +
   scale_color_manual(values = country_colors) +
   labs(x="Year", y="Life Expectancy")
+```
 
+This plot shows the life expectancy over time of the countries with low life expectancy in each continent. The black line indicates the mean worldwide life expectancy. You can see that each country has a lower life expectancy in every year than this mean. Africa has the most countries that fall below the worldwide life expectancy.
+
+
+Let's compare this to the data of all countries:
+```{r}
 gapminder %>% 
   ggplot(aes(year, lifeExp, group=country, colour=country)) +
   geom_line(lwd=1, show.legend=FALSE) +
@@ -230,19 +244,26 @@ gapminder %>%
   labs(x="Year", y="Life Expectancy")
 ```
 
-These plots shows the life expectancy over the years in different continents. Each line represents a country in the continent. The black line is the average life expectancy of all countries in all years.
+In this graph you can see that most of Africa's countries fall below the mean life expectancy, while most countries in Europe and all countries in Oceania fall above it.
+
 
 ### 6. Find countries with interesting stories. Open-ended and, therefore, hard. Promising but unsuccessful attempts are encouraged. This will generate interesting questions to follow up on in class.
 
-It looks like there is a country in Afrika that had a big drop in life expectancy between 1987 and 1992. Let's figure out which country that is.
+It looks like there is a country in Africa that had a big drop in life expectancy between 1987 and 1992. Let's figure out which country that is.
 ```{r}
-gapminder %>% 
+drop_lE <- gapminder %>% 
   group_by(country) %>% 
   mutate(drop = (lifeExp - lifeExp[year == 1987])) %>% 
   filter(continent == "Africa", year == 1992) %>% 
   summarize(Max = max(drop)) %>% 
   arrange(Max) 
 
+kable(head(drop_lE))
+```
+
+Rwanda is the country with the biggest drop in the early 1990's. Let's check if this is true by highlighting Rwanda in a plot of Africa's life expectancies.
+
+```{r}
 Rwanda <- gapminder %>% filter(country == "Rwanda")
 
 gapminder %>% 
@@ -253,7 +274,6 @@ gapminder %>%
   labs(x="Year", y="Life Expectancy")
 ```
 
+Rwanda is indeed the country with the drop in life expectancy in 1992.
 
 
-
-Or, make up your own! Between the dplyr coverage in class and the list above, I think you get the idea.
