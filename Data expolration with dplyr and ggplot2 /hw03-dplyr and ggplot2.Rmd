@@ -31,13 +31,51 @@ minmax_gdp_cont %>%
   geom_point() +
   labs(x="Continent", y="GDP per capita")
 
-# make boxplot that shows gdp stats per continent on a log scale
+
+```
+
+Looks like the gdp increased in every continent with time, although the change in Africa and the Americas in minimal.
+
+Found the cool country colours through Jenny Brian's gapminder repo
+
+
+### 2. Look at the spread of GDP per capita within the continents.
+
+```{r}
+# calculate spread statistics, i.e. standard deviation, interquartile range and median absolute deviation
+spread_gdp_cont <- gapminder %>% 
+  group_by(continent) %>% 
+  summarize(SD = sd(gdpPercap), 
+            IQR = IQR(gdpPercap), 
+            MAD= mad(gdpPercap), 
+            Mean = mean(gdpPercap))
+
+kable(spread_gdp_cont)
+```
+
+Asia has the highest standard deviation, Europe the biggest interquartile range and median absolute deviation.
+
+Here is a boxplot of the GDP per capita per continent to visualize the spread. Boxplots visualise the median, the lower and upper hinges correspond to the first and third quartiles and the length of the whiskers is 1.5x the IQR (from R documentation). Data beyond the whiskers are outliers and plotted as individual points. 
+```{r}
+# make boxplot that shows gdp per continent (log scale)
 gapminder %>%  
   ggplot(aes(continent, gdpPercap)) +
   scale_y_log10() +
   geom_boxplot(outlier.color = "red") +
   labs(x="Continent", y="GDP per capita")
+```
 
+We can also make a bar graph with errorbars that represent the SD.
+
+```{r}
+gapminder %>% 
+  ggplot() +
+  scale_y_log10() +
+  geom_bar(aes(continent, gdpPercap), stat= "summary", fun.y="mean")
+```
+
+```{r}
+# make plot of how change of GDP per capita over the years in each continent
 gapminder %>% 
   ggplot(aes(year, gdpPercap, colour=country, group=continent)) +
   scale_y_log10()+
@@ -46,17 +84,6 @@ gapminder %>%
   facet_wrap(~continent) +
   labs(x="Year", y="GDP per capita") +
   scale_color_manual(values = country_colors)
-
-```
-
-Looks like the gdp increased in every continent with time, although the change in Afrika and the Americas in minimal.
-
-Found the cool country colours through Jenny Brian's gapminder repo
-
-
-### 2. Look at the spread of GDP per capita within the continents.
-
-```{r}
 
 ```
 

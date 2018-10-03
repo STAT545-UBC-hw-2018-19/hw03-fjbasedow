@@ -48,8 +48,38 @@ minmax_gdp_cont %>%
 
 ![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
+Looks like the gdp increased in every continent with time, although the change in Africa and the Americas in minimal.
+
+Found the cool country colours through Jenny Brian's gapminder repo
+
+### 2. Look at the spread of GDP per capita within the continents.
+
 ``` r
-# make boxplot that shows gdp stats per continent on a log scale
+# calculate spread statistics, i.e. standard deviation, interquartile range and median absolute deviation
+spread_gdp_cont <- gapminder %>% 
+  group_by(continent) %>% 
+  summarize(SD = sd(gdpPercap), 
+            IQR = IQR(gdpPercap), 
+            MAD= mad(gdpPercap), 
+            Mean = mean(gdpPercap))
+
+kable(spread_gdp_cont)
+```
+
+| continent |         SD|        IQR|        MAD|       Mean|
+|:----------|----------:|----------:|----------:|----------:|
+| Africa    |   2827.930|   1616.170|   775.3226|   2193.755|
+| Americas  |   6396.764|   4402.431|  3269.3325|   7136.110|
+| Asia      |  14045.373|   7492.262|  2820.8338|   7902.150|
+| Europe    |   9355.213|  13248.301|  8846.0506|  14469.476|
+| Oceania   |   6358.983|   8072.258|  6459.1033|  18621.609|
+
+Asia has the highest standard deviation, Europe the biggest interquartile range and median absolute deviation.
+
+Here is a boxplot of the GDP per capita per continent to visualize the spread. Boxplots visualise the median, the lower and upper hinges correspond to the first and third quartiles and the length of the whiskers is 1.5x the IQR (from R documentation). Data beyond the whiskers are outliers and plotted as individual points.
+
+``` r
+# make boxplot that shows gdp per continent (log scale)
 gapminder %>%  
   ggplot(aes(continent, gdpPercap)) +
   scale_y_log10() +
@@ -57,9 +87,21 @@ gapminder %>%
   labs(x="Continent", y="GDP per capita")
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-2-2.png)
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
+We can also make a bar graph with errorbars that represent the SD.
 
 ``` r
+gapminder %>% 
+  ggplot() +
+  scale_y_log10() +
+  geom_bar(aes(continent, gdpPercap), stat= "summary", fun.y="mean")
+```
+
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-5-1.png)
+
+``` r
+# make plot of how change of GDP per capita over the years in each continent
 gapminder %>% 
   ggplot(aes(year, gdpPercap, colour=country, group=continent)) +
   scale_y_log10()+
@@ -70,13 +112,7 @@ gapminder %>%
   scale_color_manual(values = country_colors)
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-2-3.png)
-
-Looks like the gdp increased in every continent with time, although the change in Afrika and the Americas in minimal.
-
-Found the cool country colours through Jenny Brian's gapminder repo
-
-### 2. Look at the spread of GDP per capita within the continents.
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-6-1.png)
 
 Problem: cannot pipe gapminder into base R funtions `summary()` or `range`. This makes it hard to use these function for previously sorted data. Feel like my solution is very long and I am wondering if there is a shorter way to do this. Found summarize function in "data wrangling with tidyverse and dplyr" cheatsheet
 
@@ -175,7 +211,7 @@ mns_lE %>%
   labs(x="Year", y="Mean")
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-4-1.png)
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
 ### 4. How is life expectancy changing over time on different continents?
 
@@ -187,7 +223,7 @@ gapminder %>%
   labs(x="Year", y="Life Expectancy") 
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-5-1.png)
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-8-1.png)
 
 ``` r
 # show change of life expectancy over time for countries in each continent
@@ -200,7 +236,7 @@ gapminder %>%
   scale_color_manual(values = country_colors)
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-5-2.png)
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-8-2.png)
 
 ### 5. Report the absolute and/or relative abundance of countries with low life expectancy over time by continent: Compute some measure of worldwide life expectancy – you decide – a mean or median or some other quantile or perhaps your current age. Then determine how many countries on each continent have a life expectancy less than this benchmark, for each year.
 
@@ -342,7 +378,7 @@ llE %>%
   labs(x="Year", y="Life Expectancy")
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-7-1.png)
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-10-1.png)
 
 ``` r
 gapminder %>% 
@@ -354,7 +390,7 @@ gapminder %>%
   labs(x="Year", y="Life Expectancy")
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-7-2.png)
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-10-2.png)
 
 These plots shows the life expectancy over the years in different continents. Each line represents a country in the continent. The black line is the average life expectancy of all countries in all years.
 
@@ -397,6 +433,6 @@ gapminder %>%
   labs(x="Year", y="Life Expectancy")
 ```
 
-![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-8-1.png)
+![](hw03-dplyr_and_ggplot2_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
 Or, make up your own! Between the dplyr coverage in class and the list above, I think you get the idea.
